@@ -1,6 +1,6 @@
 import supervision as sv
 
-def extract_crop(model, vid_path, class_id, stride: int = 30):
+def extract_crop(model, vid_path, class_id, stride: int = 50):
   generator = sv.get_video_frames_generator(vid_path, stride = stride)
   crops = []
   for frame in generator:
