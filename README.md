@@ -1,6 +1,7 @@
 # Deep Football Analysis by Deep Learning
 ## Introduction
 Deep Football Analysis leverages the power of cutting-edge deep learning to bring a smarter, automated way to track and analyze football matches. Using a combination of YOLOv11 - which is state-of-the-art model in object detection, Supervision, and OpenCV, this project delivers real-time insights by detecting players, tracking movements, and extracting key statistics. Whether you're a data scientist, a football analyst, or just a curious fan, this project is for you.
+This project builds upon the impressive work by the Roboflow team. You can explore more of their exciting projects on their [GitHub repository](https://github.com/roboflow/sports)
 
 ## Demo output
 ![Screenshot](assets/demo_out.png)
