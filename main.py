@@ -3,7 +3,7 @@ import supervision as sv
 import cv2 as cv
 from utils.crop import extract_crop
 from utils.team import TeamClassifier, classify_goalkeepers
-from bird_eye_view.draw import draw_pitch, project_objects_on_pitch
+from bird_eye_view.draw import draw_pitch, project_objects_on_pitch, draw_statistic_board
 from bird_eye_view.config import FootballPitchConfig
 from bird_eye_view.view import ViewTransformer
 import numpy as np
@@ -15,16 +15,18 @@ def main():
     BALL_MODEL = YOLO("models/best_ball.pt")
     PITCH_MODEL = YOLO("models/best_pitch.pt")
 
-    generator = sv.get_video_frames_generator("football.mp4")
-    vid_info = sv.VideoInfo.from_video_path("football.mp4")
+    generator = sv.get_video_frames_generator("assets/football.mp4")
+    vid_info = sv.VideoInfo.from_video_path("assets/football.mp4")
     fps = vid_info.fps
 
-    crops = extract_crop(PLAYERS_MODEL, "football.mp4", 2)
+    # setup for team classification
+    crops = extract_crop(PLAYERS_MODEL, "assets/football.mp4", 2)
     team_classifier = TeamClassifier()
     team_classifier.fit(crops)
     human_tracker = sv.ByteTrack()
     human_tracker.reset()
 
+    # setup for annotators' parameters
     thickness = sv.calculate_optimal_line_thickness((vid_info.width, vid_info.height))
     text_scale = sv.calculate_optimal_text_scale((vid_info.width, vid_info.height))
 
@@ -37,25 +39,24 @@ def main():
         color = sv.Color.from_hex("FF0000"),
         thickness = thickness + 1
     )
-    ball_carrying_annotator = sv.TriangleAnnotator(
+    ball_carrying_annotator = sv.BoxCornerAnnotator(
         color = sv.Color.from_hex("FF0000"),
-        base = 20,
-        height = 15
+        thickness = thickness
     )
-    id_label_annotator = sv.LabelAnnotator(
-        color = sv.ColorPalette.from_hex(['#00BFFF', '#FF1493', '#FFD700']),
+    speed_label_annotator = sv.LabelAnnotator(
+        color = sv.ColorPalette.from_hex(['#00BFFF', '#FF1493']),
         text_color = sv.Color.from_hex('#000000'),
-        text_scale = text_scale / 3,
+        text_scale = text_scale / 2.5,
         text_thickness = thickness // 3,
-        text_position = sv.Position.TOP_CENTER
+        text_position = sv.Position.BOTTOM_CENTER
     )
 
-    players_distance = defaultdict(lambda: [])
+    # setup for ball controlling analysis and players speed estimation
+    ball_controlling = defaultdict(lambda: 0)
+    players_coordinates = defaultdict(lambda: [])
 
     with sv.VideoSink("demo_out.mp4", vid_info) as sink:
-        for idx, frame in enumerate(generator):
-            if idx == 200:
-                break
+        for frame in generator:
             res = PLAYERS_MODEL(frame, verbose = False)[0]
             detections = sv.Detections.from_ultralytics(res)
             human_detections = detections[detections.class_id != 0]
@@ -81,14 +82,9 @@ def main():
             )
             all_detections = human_tracker.update_with_detections(all_detections)
             
-            labels = [
-                f"#{track_id}" for track_id in all_detections.tracker_id
-            ]
-            
             annotated_frame = frame.copy()
             annotated_frame = human_annotator.annotate(scene = annotated_frame, detections = all_detections)
             annotated_frame = ball_annotator.annotate(scene = annotated_frame, detections = ball_detections)
-            annotated_frame = id_label_annotator.annotate(scene = annotated_frame, detections = all_detections, labels = labels)
             
             # draw pitch and project objects onto it
             pitch_config = FootballPitchConfig()
@@ -132,27 +128,6 @@ def main():
                     pitch = pitch
             )
             
-            if len(pitch_ball_xy) == 1:
-                ball_carrying_id = None
-                cur_min_dist = 1000000
-                players_detections = all_detections[all_detections.class_id != 2]
-                for coordinate, track_id in zip(pitch_all_xy[all_detections.class_id != 2], players_detections.tracker_id):
-                    player_x, player_y = coordinate
-                    ball_x, ball_y = pitch_ball_xy[0]
-                    dist = math.sqrt((player_x - ball_x)**2 + (player_y - ball_y)**2)
-                    players_distance[track_id] = dist
-                    if dist < cur_min_dist:
-                        cur_min_dist = dist
-                        if dist < 300:
-                            ball_carrying_id = track_id
-            
-                if ball_carrying_id is not None:
-                    carrying_detections = players_detections[players_detections.tracker_id == ball_carrying_id]
-                    annotated_frame = ball_carrying_annotator.annotate(
-                        scene = annotated_frame,
-                        detections = carrying_detections
-                    )
-            
             h, w = annotated_frame.shape[:2]
             resized_pitch = sv.resize_image(pitch, (w // 4, h // 4))
             resized_pitch_h, resized_pitch_w = resized_pitch.shape[:2]
@@ -163,8 +138,58 @@ def main():
                 height = resized_pitch_h
             )
             demo = sv.draw_image(scene = annotated_frame, image = pitch, opacity = 0.7, rect = rect)
-            # sv.plot_image(demo, (16, 16))
-            sink.write_frame(demo)
+            
+            # Speed estimaion
+            speed_labels = []
+            players_detections = all_detections[all_detections.data["class_name"] == "player"]
+            pitch_players_xy = pitch_all_xy[all_detections.data["class_name"] == "player"]
+            pitch_players_id = players_detections.tracker_id
+            for player_id, player_coordinate in zip(pitch_players_id, pitch_players_xy):
+                if len(players_coordinates[player_id]) < 10:
+                    players_coordinates[player_id].append(player_coordinate)
+                    speed_labels.append("")
+                else:
+                    x_start, y_start = players_coordinates[player_id][0]
+                    x_end, y_end = players_coordinates[player_id][-1]
+                    dist = math.sqrt((x_end - x_start)**2 + (y_end - y_start)**2)
+                    time = len(players_coordinates[player_id]) / fps
+                    speed = dist / time * 0.036 # from cm/s to km/h
+                    speed_labels.append(f"{int(speed)} km/h")
+                    players_coordinates[player_id] = players_coordinates[player_id][1:] + [player_coordinate]
+            
+            demo = speed_label_annotator.annotate(scene = demo, detections = players_detections, labels = speed_labels)
+            
+            # Ball controlling analysis
+            if len(pitch_ball_xy) == 1:
+                ball_carrying_id = None
+                ball_carrying_class_id = None
+                cur_min_dist = 1000000
+                players_detections = all_detections[all_detections.class_id != 2]
+                for coordinate, track_id, class_id in zip(pitch_players_xy, 
+                                                          players_detections.tracker_id,
+                                                          players_detections.class_id):
+                    player_x, player_y = coordinate
+                    ball_x, ball_y = pitch_ball_xy[0]
+                    dist = math.sqrt((player_x - ball_x)**2 + (player_y - ball_y)**2)
+                    if dist < cur_min_dist:
+                        cur_min_dist = dist
+                        ball_carrying_id = track_id
+                        ball_carrying_class_id = class_id
+                    
+                ball_controlling[ball_carrying_class_id] += 1
+                if ball_carrying_id is not None and cur_min_dist < 300:
+                    carrying_detections = players_detections[players_detections.tracker_id == ball_carrying_id]
+                    annotated_frame = ball_carrying_annotator.annotate(
+                        scene = annotated_frame,
+                        detections = carrying_detections
+                    )
+            
+            demo_with_board = draw_statistic_board(
+                scene = demo,
+                ball_controlling = ball_controlling
+            )
+            
+            sink.write_frame(demo_with_board)
 
 if __name__ == "__main__":
     main()

@@ -1,6 +1,6 @@
 import torch
-from transformers import AutoProcessor, SiglipVisionModel
-import umap
+# from transformers import AutoProcessor, SiglipVisionModel
+# import umap
 from sklearn.cluster import KMeans
 import numpy as np
 from more_itertools import chunked
@@ -8,18 +8,18 @@ from tqdm.auto import tqdm
 import supervision as sv
 
 def classify_goalkeepers(goalkeepers_detections, players_detections):
-    goalkeepers_xy = goalkeepers_detections.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
-    players_0_xy = players_detections[players_detections.class_id == 0].get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
-    players_1_xy = players_detections[players_detections.class_id == 1].get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
-    players_0_centroid = players_0_xy.mean(axis = 0)
-    players_1_centroid = players_1_xy.mean(axis = 0)
-    team_id = []
-    for goalkeeper_xy in goalkeepers_xy:
-        dis0 = np.linalg.norm(goalkeeper_xy - players_0_centroid)
-        dis1 = np.linalg.norm(goalkeeper_xy - players_1_centroid)
-        team_id.append(0 if dis0 < dis1 else 1)
+  goalkeepers_xy = goalkeepers_detections.get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
+  players_0_xy = players_detections[players_detections.class_id == 0].get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
+  players_1_xy = players_detections[players_detections.class_id == 1].get_anchors_coordinates(sv.Position.BOTTOM_CENTER)
+  players_0_centroid = players_0_xy.mean(axis = 0)
+  players_1_centroid = players_1_xy.mean(axis = 0)
+  team_id = []
+  for goalkeeper_xy in goalkeepers_xy:
+    dis0 = np.linalg.norm(goalkeeper_xy - players_0_centroid)
+    dis1 = np.linalg.norm(goalkeeper_xy - players_1_centroid)
+    team_id.append(0 if dis0 < dis1 else 1)
 
-    return np.array(team_id)
+  return np.array(team_id)
 
 # class TeamClassifier: # Siglip + UMAP + KMeans (reliable but slower)
 #   def __init__(self):
