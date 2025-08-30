@@ -8,12 +8,9 @@ Deep Football Analysis leverages the power of cutting-edge deep learning to brin
 
 
 ## Datasets
-
-| use case                        | dataset                                          |                                                                                                                                                                                           |
-|:--------------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| football - players detection         |https://universe.roboflow.com/roboflow-jvuqo/football-players-detection-3zvbc      |
-| football - ball detection           | https://universe.roboflow.com/roboflow-jvuqo/football-ball-detection-rejhg  |  |
-| football - pitch keypoint detection | https://universe.roboflow.com/roboflow-jvuqo/football-field-detection-f07vi   | |
+- Football - players detection: https://universe.roboflow.com/roboflow-jvuqofootball-players-detection-3zvbc 
+- Football - ball detection: https://universe.roboflow.com/roboflow-jvuqo/football-ball-detection-rejhg
+- Football - pitch keypoint detection: https://universe.roboflow.com/roboflow-jvuqo/football-field-detection-f07vi
 
 ## Modules used
 
