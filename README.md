@@ -5,7 +5,7 @@ This project builds upon the impressive work by the Roboflow team. You can explo
 
 ## Demo output
 ![Screenshot](assets/demo_out.png)
-- You can watch a clearer demo output video at [Youtube](https://www.youtube.com/watch?v=JumrNzpESf8)
+- You can watch a clearer demo output video at [Youtube](https://www.youtube.com/watch?v=JumrNzpESf8) or the mp4 format version of the demo output at assets/demo_out.mp4
 
 
 ## Datasets
