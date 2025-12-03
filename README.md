@@ -4,8 +4,9 @@ Deep Football Analysis leverages the power of cutting-edge deep learning to brin
 This project builds upon the impressive work by the Roboflow team. You can explore more of their exciting projects on their [GitHub repository](https://github.com/roboflow/sports)
 
 ## Demo output
-![Screenshot](assets/demo_out.png)
-- You can watch full demo output video at [Youtube](https://www.youtube.com/watch?v=JumrNzpESf8)
+<p align="center">
+  <img src="assets/demo_out.gif" width="800">
+</p>
 
 
 ## Datasets
