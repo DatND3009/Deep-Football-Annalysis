@@ -5,8 +5,10 @@ This project builds upon the impressive work by the Roboflow team. You can explo
 
 ## Demo output
 <p align="center">
-  <img src="assets/demo_out.gif" width="600">
+  <img src="assets/demo_out.gif" width="800">
 </p>
+![Screenshot](assets/demo_out.png)
+- You can watch a clearer demo output video at [Youtube](https://www.youtube.com/watch?v=JumrNzpESf8)
 
 
 ## Datasets
