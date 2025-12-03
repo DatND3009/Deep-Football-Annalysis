@@ -5,7 +5,7 @@ This project builds upon the impressive work by the Roboflow team. You can explo
 
 ## Demo output
 <p align="center">
-  <img src="assets/demo_out.gif" width="800">
+  <img src="assets/demo_out.gif" width="600">
 </p>
 
 
