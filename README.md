@@ -52,14 +52,15 @@ Whether you are a data scientist, a football analyst, or a curious fan, this pro
 ## 📁 Project Structure
 ```
 football-tracking/
-├── assets/                 # Input videos and demo outputs
-├── bird_eye_view/          # Logic for 2D tactical map and perspective transform
-├── config/                 # Global settings (paths, colors, constants)
-├── core/                   # Main business logic (speed, possession)
-├── models/                 # YOLO weights (auto-downloaded here)
-├── utils/                  # Helper functions (crop, team classifier, downloader)
-├── visualizers/            # UI and drawing configurations
-├── main.py                 # Main execution script
+├── assets/                       # Input videos and demo outputs
+├── bird_eye_view/                # Logic for 2D tactical map and perspective transform
+├── config/                       # Global settings (paths, colors, constants)
+├── core/                         # Main business logic (speed, possession)
+├── models/                       # YOLO weights (auto-downloaded here)
+├── utils/                        # Helper functions (crop, team classifier, downloader)
+├── visualizers/                  # UI and drawing configurations
+├── football-demo-scripts.ipynb   # Jupyter Notebook for cloud GPU execution (Colab/Kaggle)
+├── main.py                       # Main execution script
 └── requirements.txt
 ```
 ---
