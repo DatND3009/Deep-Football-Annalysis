@@ -69,8 +69,13 @@ def draw_statistic_board(
                     dtype=np.uint8) * np.array(color.as_bgr(), dtype=np.uint8)
 
     total_controlled_frame = sum(ball_controlling.values())
-    team_0_controlling = int(ball_controlling[0] / total_controlled_frame * 100)
-    team_1_controlling = 100 - team_0_controlling
+
+    if total_controlled_frame == 0:
+        team_0_controlling = 0
+        team_1_controlling = 0
+    else:
+        team_0_controlling = int(ball_controlling[0] / total_controlled_frame * 100 + 1e-6)
+        team_1_controlling = int(ball_controlling[2] / total_controlled_frame * 100 + 1e-6) 
 
     cv.putText(board, "Ball Controlling", (70, 70), cv.FONT_HERSHEY_SIMPLEX,
                1.5, (0, 0, 0), 3)
