@@ -2,12 +2,13 @@ import cv2 as cv
 import numpy as np
 from ultralytics import YOLO
 import supervision as sv
-import torch
+from tqdm import tqdm
 
 from config.settings import *
 from core.speed_estimator import SpeedEstimator
 from core.possession_analyzer import PossessionAnalyzer
 from visualizers.annotators import VideoAnnotator
+from utils.downloader import download_models_if_needed
 
 from utils.crop import extract_crop
 from utils.team import TeamClassifier, classify_goalkeepers
@@ -16,11 +17,11 @@ from bird_eye_view.config import FootballPitchConfig
 from bird_eye_view.view import ViewTransformer
 
 def main():
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    download_models_if_needed()
 
-    players_model = YOLO(PLAYERS_MODEL_PATH).to(device)
-    ball_model = YOLO(BALL_MODEL_PATH).to(device)
-    pitch_model = YOLO(PITCH_MODEL_PATH).to(device)
+    players_model = YOLO(PLAYERS_MODEL_PATH)
+    ball_model = YOLO(BALL_MODEL_PATH)
+    pitch_model = YOLO(PITCH_MODEL_PATH)
 
     vid_info = sv.VideoInfo.from_video_path(VIDEO_PATH)
     generator = sv.get_video_frames_generator(VIDEO_PATH)
@@ -38,31 +39,32 @@ def main():
     pitch_config = FootballPitchConfig()
 
     with sv.VideoSink(OUTPUT_VIDEO_PATH, vid_info) as sink:
-        for frame in generator:
-            res_players = players_model(frame, verbose=False)[0]
+        for frame in tqdm(generator, total=vid_info.total_frames, desc="Rendering output video"):
+            
+            res_players = players_model(frame, device="cuda", verbose=False)[0]
             detections = sv.Detections.from_ultralytics(res_players)
             
-            res_ball = ball_model(frame, verbose=False)[0]
+            res_ball = ball_model(frame, device="cuda", verbose=False)[0]
             ball_detections = sv.Detections.from_ultralytics(res_ball)
             
             players_detections = detections[detections.class_id == 2]
             goalkeepers_detections = detections[detections.class_id == 1]
             referees_detections = detections[detections.class_id == 3]
             
-            crops = [sv.crop_image(frame, xyxy=xyxy) for xyxy in players_detections.xyxy]
-            players_detections.class_id = team_classifier.predict(crops)
+            crops_frame = [sv.crop_image(frame, xyxy=xyxy) for xyxy in players_detections.xyxy]
+            players_detections.class_id = team_classifier.predict(crops_frame)
             goalkeepers_detections.class_id = classify_goalkeepers(goalkeepers_detections, players_detections)
             referees_detections.class_id -= 1
             
             all_detections = sv.Detections.merge([players_detections, goalkeepers_detections, referees_detections])
             all_detections = human_tracker.update_with_detections(all_detections)
-            
+        
             annotated_frame = frame.copy()
             annotated_frame = annotators.human.annotate(scene=annotated_frame, detections=all_detections)
             annotated_frame = annotators.ball.annotate(scene=annotated_frame, detections=ball_detections)
             
             pitch = draw_pitch(pitch_config)
-            pitch_res = pitch_model(frame, verbose=False)[0]
+            pitch_res = pitch_model(frame, device="cuda", verbose=False)[0]
             frame_keypoints = sv.KeyPoints.from_ultralytics(pitch_res)
             
             filter_kp = frame_keypoints.confidence[0] > 0.5
@@ -86,7 +88,7 @@ def main():
             resized_pitch = sv.resize_image(pitch, (w // 4, h // 4))
             rect = sv.Rect(x=0, y=0, width=resized_pitch.shape[1], height=resized_pitch.shape[0])
             demo = sv.draw_image(scene=annotated_frame, image=pitch, opacity=0.7, rect=rect)
-        
+            
             players_only = all_detections[all_detections.data["class_name"] == "player"] if "class_name" in all_detections.data else all_detections
             pitch_players_xy = pitch_all_xy[all_detections.data.get("class_name", "") == "player"] if "class_name" in all_detections.data else pitch_all_xy
             
